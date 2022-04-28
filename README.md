@@ -1,1 +1,1 @@
-# MetabolomicsWorkflow
+# Metabolomics workflow with pyOpenMS
