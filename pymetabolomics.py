@@ -4,11 +4,6 @@ import csv
 import pandas as pd
 from pyopenms import *
 
-# TODO FeatureFinderMetaboIdent.create_template_library
-# TODO instead of directory (eg. with FeatureXML files, accept also list of filenames)
-# TODO single files for MetaboliteAdductDecharger and IDMapper
-
-
 class Helper:
     def reset_directory(path: str):
         try:
