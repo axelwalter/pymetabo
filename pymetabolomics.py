@@ -294,3 +294,20 @@ class FeatureMapHelper:
                     for f in fm_ffmid:
                         fm_ffm.push_back(f)
                     FeatureXMLFile().store(os.path.join(featureXML_merged_dir, file_ffm), fm_ffm)
+
+class MetaboliteAdductDecharger:
+    def run(fm_dir, fm_decharged_dir, params = {}):
+        Helper.reset_directory(fm_decharged_dir)
+        for file in os.listdir(fm_dir):
+            feature_map = FeatureMap()
+            FeatureXMLFile().load(os.path.join(fm_dir, file), feature_map)
+            mfd = MetaboliteFeatureDeconvolution()
+            mdf_par = mfd.getDefaults()
+            for key, value in params.items():
+                if key.encode() in mdf_par.keys():
+                    mdf_par.setValue(key, value)
+            mfd.setParameters(mdf_par)
+
+            feature_map_decharged = FeatureMap()
+            mfd.compute(feature_map, feature_map_decharged, ConsensusMap(), ConsensusMap())
+            FeatureXMLFile().store(os.path.join(fm_decharged_dir, file), feature_map_decharged)

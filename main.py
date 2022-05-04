@@ -34,13 +34,15 @@ MapAligner.run(mzML_dir, os.path.join(results, "MzML_aligned"), os.path.join(res
 library = FeatureFinderMetaboIdent.load_library(os.path.join(results, "ConsensusMaps", "FFM.consensusXML"), os.path.join(results, "FFMID_library.tsv"))
 FeatureFinderMetaboIdent.run(os.path.join(results, "MzML_aligned"), os.path.join(results, "FFMID"), library)
 
-# # Merge FeatureMaps from FFM and FFMID
-# fm_merged_dir = reset_directory(os.path.join(result_dir, "FeatureMaps_merged"))
-# FeatureMapFunctions.merge_feature_maps(fm_merged_dir, ffm_complete, ffmid_dir)
+FeatureMapHelper.merge_feature_maps(os.path.join(results, "FeatureMaps_merged"), os.path.join(results, "FFM_complete"), os.path.join(results, "FFMID"))
 
 # # AdductDecharger (optional)
 # decharged_dir = reset_directory(os.path.join(result_dir, "FFMID_decharged"))
-# AdductDecharger.run(ffmid_dir, decharged_dir)
+MetaboliteAdductDecharger.run(os.path.join(results, "FeatureMaps_merged"), os.path.join(results, "FeatureMaps_decharged"),
+                        {"potential_adducts": [b"H:+:0.5",b"Na:+:0.3", b"H-1O-1:+:0.2"],
+                        "charge_min": 1,
+                        "charge_max": 3,
+                        "max_neutrals": 2})
 
 # # IDMapper (optional)
 # mapped_dir = reset_directory(os.path.join(result_dir, "FFMID_id_mapped"))
