@@ -1,32 +1,14 @@
 import os
-import shutil
 import csv
 import pandas as pd
 from pyopenms import *
-
-class Helper:
-    def reset_directory(path: str):
-        try:
-            shutil.rmtree(path)
-            os.mkdir(path)
-        except OSError:
-            os.mkdir(path)
-        return path
-
-    def load_feature_maps(path: str):
-        feature_maps = []
-        for file in os.listdir(path):
-            feature_map = FeatureMap()
-            FeatureXMLFile().load(os.path.join(path, file), feature_map)
-            feature_maps.append(feature_map)
-        return feature_maps
+from helpers import Helper
 
 
 class FeatureFinderMetabo:
     def run(mzML, featureXML, params={}, q_threshold=0):
         if os.path.isdir(mzML):
-            mzML_files = [os.path.join(mzML, file)
-                          for file in os.listdir(mzML)]
+            mzML_files = [os.path.join(mzML, file) for file in os.listdir(mzML)]
         else:
             mzML_files = [mzML]
         if not featureXML.endswith(".featureXML"):
@@ -77,10 +59,8 @@ class FeatureFinderMetabo:
                 for f in feature_map:
                     if f.getOverallQuality() > q_threshold:  # 0.0005 was good
                         feature_map_filtered.push_back(f)
-                print('Features before quality filter: ' +
-                      str(feature_map.size()))
-                print('Features after quality filter: ' +
-                      str(feature_map_filtered.size()))
+                print('Features before quality filter: ' + str(feature_map.size()))
+                print('Features after quality filter: ' + str(feature_map_filtered.size()))
                 feature_map = feature_map_filtered
             if os.path.isdir(featureXML):
                 FeatureXMLFile().store(os.path.join(featureXML, os.path.basename(
@@ -104,11 +84,9 @@ class MapAligner:
             feature_maps = Helper.load_feature_maps(input_files)
             # store TransformationDescriptions for MapAlignmentTransformer of MSExperiments during Requantification
             transformations = {}
-            ref_index = feature_maps.index(
-                sorted(feature_maps, key=lambda x: x.size())[-1])
+            ref_index = feature_maps.index(sorted(feature_maps, key=lambda x: x.size())[-1])
             aligner.setReference(feature_maps[ref_index])
-            print("Map Alignment reference map: ", feature_maps[ref_index].getMetaValue(
-                "spectra_data")[0].decode())
+            print("Map Alignment reference map: ", feature_maps[ref_index].getMetaValue("spectra_data")[0].decode())
 
             for feature_map in feature_maps[:ref_index] + feature_maps[ref_index+1:]:
                 trafo = TransformationDescription()
@@ -117,8 +95,7 @@ class MapAligner:
                 transformer = MapAlignmentTransformer()
                 # FeatureMap, TransformationDescription, bool: keep original RTs as meta value
                 transformer.transformRetentionTimes(feature_map, trafo, True)
-                transformations[feature_map.getMetaValue(
-                    "spectra_data")[0].decode()] = trafo
+                transformations[feature_map.getMetaValue("spectra_data")[0].decode()] = trafo
                 TransformationXMLFile().store(os.path.join(trafo_dir, os.path.basename(
                     feature_map.getMetaValue("spectra_data")[0].decode())[:-4] + "trafoXML"), trafo)
 
@@ -174,15 +151,6 @@ class FeatureLinker:
         print(f"ConsensusMap size: {consensus_map.size()}")
 
 
-class DataFrames:
-    def create_consensus_table(consensusXML_file, table_file):
-        consensus_map = ConsensusMap()
-        ConsensusXMLFile().load(consensusXML_file, consensus_map)
-        df = consensus_map.get_df().drop(["sequence"], axis=1)
-        df.to_csv(table_file, sep="\t")
-        return df
-
-
 class FeatureFinderMetaboIdent:
     def load_library(input_file, library_file=""):
         # input file can be a consensusXML or tsv file
@@ -206,18 +174,15 @@ class FeatureFinderMetaboIdent:
             # drop the mz column
             library = library.drop(columns="mz")
             library["Charge"] = [[c] for c in library["Charge"]]
-            library["RetentionTime"] = [[rt]
-                                        for rt in library["RetentionTime"]]
+            library["RetentionTime"] = [[rt] for rt in library["RetentionTime"]]
             # add the rest of the columns required for the MetaboliteIdentificationTable and fill with zeros or blanks, except the "Compound Name"
             #which, since they are all unknown, can be filled with f_#
             library['CompoundName'] = [i for i in range(0, len(library))]
             library['CompoundName'] = "f_" + \
                 library['CompoundName'].astype(str)
             library["SumFormula"] = ""
-            library["RetentionTimeRange"] = [[0.0]
-                                             for _ in range(len(library.index))]
-            library["IsoDistribution"] = [[0.0]
-                                          for _ in range(len(library.index))]
+            library["RetentionTimeRange"] = [[0.0] for _ in range(len(library.index))]
+            library["IsoDistribution"] = [[0.0] for _ in range(len(library.index))]
             library = library[["CompoundName", "SumFormula", "Mass", "Charge",
                                "RetentionTime", "RetentionTimeRange", "IsoDistribution"]]
             if library_file:
@@ -227,6 +192,7 @@ class FeatureFinderMetaboIdent:
                 metabo_table.append(FeatureFinderMetaboIdentCompound(
                     row["CompoundName"], row["SumFormula"], row["Mass"], row["Charge"], row["RetentionTime"], row["RetentionTimeRange"], row["IsoDistribution"]))
             return metabo_table
+
         elif input_file.endswith("tsv"):
             metabo_table = []
             with open(input_file, 'r') as tsv_file:
@@ -237,14 +203,11 @@ class FeatureFinderMetaboIdent:
                         row[0],  # name
                         row[1],  # sum formula
                         float(row[2]),  # mass
-                        [int(charge)
-                         for charge in row[3].split(',')],  # charges
+                        [int(charge) for charge in row[3].split(',')],  # charges
                         [float(rt) for rt in row[4].split(',')],  # RTs
-                        [float(rt_range)
-                         for rt_range in row[5].split(',')],  # RT ranges
+                        [float(rt_range) for rt_range in row[5].split(',')],  # RT ranges
                         # isotope distributions
-                        [float(iso_distrib)
-                         for iso_distrib in row[6].split(',')]
+                        [float(iso_distrib) for iso_distrib in row[6].split(',')]
                     ))
             return metabo_table
 
@@ -254,8 +217,7 @@ class FeatureFinderMetaboIdent:
 
     def run(mzML, featureXML, library, params={}):
         if os.path.isdir(mzML):
-            mzML_files = [os.path.join(mzML, file)
-                          for file in os.listdir(mzML)]
+            mzML_files = [os.path.join(mzML, file) for file in os.listdir(mzML)]
         else:
             mzML_files = [mzML]
         if not featureXML.endswith(".featureXML"):  # -> it is a directory
@@ -281,57 +243,6 @@ class FeatureFinderMetaboIdent:
                     mzML_file)[:-4] + "featureXML"), feature_map)
             else:
                 FeatureXMLFile().store(featureXML, feature_map)
-
-
-class FeatureMapHelper:
-    def split_consensus_map(consensusXML_file, consensusXML_complete_file="", consensusXML_missing_file=""):
-        consensus_map = ConsensusMap()
-        ConsensusXMLFile().load(consensusXML_file, consensus_map)
-        headers = consensus_map.getColumnHeaders()
-        complete = ConsensusMap(consensus_map)
-        complete.clear(False)
-        missing = ConsensusMap(consensus_map)
-        missing.clear(False)
-        for cf in consensus_map:
-            if len(cf.getFeatureList()) < len(headers):
-                missing.push_back(cf)
-            else:
-                complete.push_back(cf)
-        if consensusXML_complete_file.endswith("consensusXML"):
-            ConsensusXMLFile().store(consensusXML_complete_file, complete)
-        if consensusXML_missing_file.endswith("consensusXML"):
-            ConsensusXMLFile().store(consensusXML_missing_file, missing)
-
-    # takes a (filtered) ConsensusMap (usually the complete) and reconstructs the FeatureMaps
-    def consensus_to_feature_maps(consensusXML_file, original_featureXML_dir, reconstructed_featureXML_dir):
-        consensus_map = ConsensusMap()
-        ConsensusXMLFile().load(consensusXML_file, consensus_map)
-        to_keep_ids = [item for sublist in [[feature.getUniqueId(
-        ) for feature in cf.getFeatureList()] for cf in consensus_map] for item in sublist]
-        Helper.reset_directory(reconstructed_featureXML_dir)
-        for file in os.listdir(original_featureXML_dir):
-            feature_map = FeatureMap()
-            FeatureXMLFile().load(os.path.join(original_featureXML_dir, file), feature_map)
-            fm_filterd = FeatureMap(feature_map)
-            fm_filterd.clear(False)
-            for feature in feature_map:
-                if feature.getUniqueId() in to_keep_ids:
-                    fm_filterd.push_back(feature)
-            FeatureXMLFile().store(os.path.join(reconstructed_featureXML_dir, os.path.basename(
-                fm_filterd.getMetaValue("spectra_data")[0].decode())[:-4] + "featureXML"), fm_filterd)
-
-    def merge_feature_maps(featureXML_merged_dir, featureXML_dir_a, featureXML_dir_b):
-        Helper.reset_directory(featureXML_merged_dir)
-        for file_ffm in os.listdir(featureXML_dir_a):
-            for file_ffmid in os.listdir(featureXML_dir_b):
-                if file_ffm == file_ffmid:
-                    fm_ffm = FeatureMap()
-                    FeatureXMLFile().load(os.path.join(featureXML_dir_a, file_ffm), fm_ffm)
-                    fm_ffmid = FeatureMap()
-                    FeatureXMLFile().load(os.path.join(featureXML_dir_b, file_ffm), fm_ffmid)
-                    for f in fm_ffmid:
-                        fm_ffm.push_back(f)
-                    FeatureXMLFile().store(os.path.join(featureXML_merged_dir, file_ffm), fm_ffm)
 
 
 class MetaboliteAdductDecharger:
@@ -368,6 +279,5 @@ class MapID:
                 if feature_file[:-10] == mzML_file[:-4]:
                     peptide_ids = []
                     protein_ids = []
-                    mapper.annotate(fm, peptide_ids, protein_ids,
-                                    use_centroid_rt, use_centroid_mz, exp)
+                    mapper.annotate(fm, peptide_ids, protein_ids, use_centroid_rt, use_centroid_mz, exp)
                     FeatureXMLFile().store(os.path.join(fm_mapped_dir, feature_file), fm)
