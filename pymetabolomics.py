@@ -272,7 +272,7 @@ class FeatureMapHelper:
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         to_keep_ids = [item for sublist in [[feature.getUniqueId() for feature in cf.getFeatureList()] for cf in consensus_map] for item in sublist]
         Helper.reset_directory(reconstructed_featureXML_dir)
-        for file in original_featureXML_dir:
+        for file in os.listdir(original_featureXML_dir):
             feature_map = FeatureMap()
             FeatureXMLFile().load(os.path.join(original_featureXML_dir, file), feature_map)
             fm_filterd = FeatureMap(feature_map)

@@ -22,12 +22,12 @@ FeatureLinker.run(os.path.join(results, "FFM_aligned"), os.path.join(results, "C
 DataFrames.create_consensus_table(os.path.join(results, "ConsensusMaps", "FFM.consensusXML"), 
                                 os.path.join(results, "ConsensusMaps", "FFM.tsv"))
 
-# FeatureMapHelper.split_consensus_map(os.path.join(results, "ConsensusMaps", "FFM.consensusXML"),
-#                                     os.path.join(results, "ConsensusMaps", "FFM_complete.consensusXML"),
-#                                     os.path.join(results, "ConsensusMaps", "FFM_missing.consensusXML"))
-# FeatureMapHelper.consensus_to_feature_maps(os.path.join(results, "ConsensusMaps", "FFM_complete.consensusXML"),
-#                                         os.path.join(results, "FFM"),
-#                                         os.path.join(results, "FFM_complete"))
+FeatureMapHelper.split_consensus_map(os.path.join(results, "ConsensusMaps", "FFM.consensusXML"),
+                                    os.path.join(results, "ConsensusMaps", "FFM_complete.consensusXML"),
+                                    os.path.join(results, "ConsensusMaps", "FFM_missing.consensusXML"))
+FeatureMapHelper.consensus_to_feature_maps(os.path.join(results, "ConsensusMaps", "FFM_complete.consensusXML"),
+                                        os.path.join(results, "FFM"),
+                                        os.path.join(results, "FFM_complete"))
 
 MapAligner.run(mzML_dir, os.path.join(results, "MzML_aligned"), os.path.join(results, "Trafo"))
 
