@@ -2,7 +2,7 @@ import os
 import csv
 import pandas as pd
 from pyopenms import *
-from helpers import Helper
+from .helpers import Helper
 
 
 class FeatureFinderMetabo:
