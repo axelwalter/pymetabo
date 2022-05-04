@@ -6,6 +6,7 @@ from pyopenms import *
 
 # TODO FeatureFinderMetaboIdent.create_template_library 
 # TODO instead of directory (eg. with FeatureXML files, accept also list of filenames)
+# TODO single files for MetaboliteAdductDecharger and IDMapper
 
 class Helper:
     def reset_directory(path: str):
@@ -14,6 +15,7 @@ class Helper:
             os.mkdir(path)
         except OSError:
             os.mkdir(path)
+        return path
 
     def load_feature_maps(path: str):
         feature_maps = []
@@ -151,7 +153,6 @@ class FeatureLinker:
         consensus_map.setColumnHeaders(file_descriptions)
 
         consensus_map.setUniqueIds()
-        Helper.reset_directory(os.path.dirname(consensusXML_file))
         ConsensusXMLFile().store(consensusXML_file, consensus_map)
         print(f"ConsensusMap size: {consensus_map.size()}")
 
@@ -311,3 +312,21 @@ class MetaboliteAdductDecharger:
             feature_map_decharged = FeatureMap()
             mfd.compute(feature_map, feature_map_decharged, ConsensusMap(), ConsensusMap())
             FeatureXMLFile().store(os.path.join(fm_decharged_dir, file), feature_map_decharged)
+
+class MapID:
+    def run(mzML_dir, fm_dir, fm_mapped_dir):
+        Helper.reset_directory(fm_mapped_dir)
+        use_centroid_rt= False
+        use_centroid_mz= True
+        mapper = IDMapper()
+        for mzML_file in os.listdir(mzML_dir):
+            exp = MSExperiment()
+            MzMLFile().load(os.path.join(mzML_dir, mzML_file), exp)
+            for feature_file in os.listdir(fm_dir):
+                fm = FeatureMap()
+                FeatureXMLFile().load(os.path.join(fm_dir, feature_file), fm)
+                if feature_file[:-10] == mzML_file[:-4]:
+                    peptide_ids = []
+                    protein_ids = []
+                    mapper.annotate(fm, peptide_ids, protein_ids, use_centroid_rt, use_centroid_mz, exp)
+                    FeatureXMLFile().store(os.path.join(fm_mapped_dir, feature_file), fm)
