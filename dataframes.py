@@ -1,7 +1,7 @@
 from pyopenms import *
 
 class DataFrames:
-    def create_consensus_table(consensusXML_file, table_file):
+    def create_consensus_table(self, consensusXML_file, table_file):
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         df = consensus_map.get_df().drop(["sequence"], axis=1)

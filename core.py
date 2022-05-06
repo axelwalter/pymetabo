@@ -6,13 +6,13 @@ from .helpers import Helper
 
 
 class FeatureFinderMetabo:
-    def run(mzML, featureXML, params={}, q_threshold=0):
+    def run(self, mzML, featureXML, params={}, q_threshold=0):
         if os.path.isdir(mzML):
             mzML_files = [os.path.join(mzML, file) for file in os.listdir(mzML)]
         else:
             mzML_files = [mzML]
         if not featureXML.endswith(".featureXML"):
-            Helper.reset_directory(featureXML)
+            Helper().reset_directory(featureXML)
         for mzML_file in mzML_files:
             exp = MSExperiment()
             MzMLFile().load(mzML_file, exp)
@@ -70,7 +70,7 @@ class FeatureFinderMetabo:
 
 
 class MapAligner:
-    def run(input_files, aligned_dir, trafo_dir, params={}):
+    def run(self, input_files, aligned_dir, trafo_dir, params={}):
         aligner = MapAlignmentAlgorithmPoseClustering()
         aligner_par = aligner.getDefaults()
         for key, value in params.items():
@@ -79,9 +79,9 @@ class MapAligner:
         aligner.setParameters(aligner_par)
         inputs = os.listdir(input_files)
         if inputs and inputs[0].endswith("featureXML"):
-            Helper.reset_directory(aligned_dir)
-            Helper.reset_directory(trafo_dir)
-            feature_maps = Helper.load_feature_maps(input_files)
+            Helper().reset_directory(aligned_dir)
+            Helper().reset_directory(trafo_dir)
+            feature_maps = Helper().load_feature_maps(input_files)
             # store TransformationDescriptions for MapAlignmentTransformer of MSExperiments during Requantification
             transformations = {}
             ref_index = feature_maps.index(sorted(feature_maps, key=lambda x: x.size())[-1])
@@ -105,7 +105,7 @@ class MapAligner:
                     feature_map.getMetaValue("spectra_data")[0].decode())[:-4] + "featureXML"), feature_map)
 
         elif inputs and inputs[0].endswith("mzML"):
-            Helper.reset_directory(aligned_dir)
+            Helper().reset_directory(aligned_dir)
             for file in os.listdir(input_files):
                 exp = MSExperiment()
                 MzMLFile().load(os.path.join(input_files, file), exp)
@@ -123,8 +123,8 @@ class MapAligner:
 
 
 class FeatureLinker:
-    def run(featureXML_dir, consensusXML_file, params={}):
-        feature_maps = Helper.load_feature_maps(featureXML_dir)
+    def run(self, featureXML_dir, consensusXML_file, params={}):
+        feature_maps = Helper().load_feature_maps(featureXML_dir)
         feature_grouper = FeatureGroupingAlgorithmKD()
 
         feature_grouper_params = feature_grouper.getDefaults()
@@ -152,7 +152,7 @@ class FeatureLinker:
 
 
 class FeatureFinderMetaboIdent:
-    def load_library(input_file, library_file=""):
+    def load_library(self, input_file, library_file=""):
         # input file can be a consensusXML or tsv file
         if input_file.endswith("consensusXML"):
             consensus_map = ConsensusMap()
@@ -211,17 +211,22 @@ class FeatureFinderMetaboIdent:
                     ))
             return metabo_table
 
-    def create_template_library(file_path):
+    def create_template_library(self, file_path):
         if file_path.endswith("tsv"):
             pass
 
-    def run(mzML, featureXML, library, params={}):
+    def run(self, mzML, featureXML, library, params={}):
         if os.path.isdir(mzML):
             mzML_files = [os.path.join(mzML, file) for file in os.listdir(mzML)]
         else:
             mzML_files = [mzML]
         if not featureXML.endswith(".featureXML"):  # -> it is a directory
-            Helper.reset_directory(featureXML)
+            Helper().reset_directory(featureXML)
+        lib_is_dir = False
+        if os.path.isdir(library):
+            lib_is_dir = True
+        else:
+            metabo_table = self.load_library(library)
         for mzML_file in mzML_files:
             exp = MSExperiment()
             MzMLFile().load(mzML_file, exp)
@@ -233,11 +238,21 @@ class FeatureFinderMetaboIdent:
                 if key.encode() in ffmid_params.keys():
                     ffmid_params.setValue(key, value)
             ffmid.setParameters(ffmid_params)
+            if lib_is_dir:
+                metabo_table = self.load_library(os.path.join(library, 
+                                                            os.path.basename(mzML_file)[:-4]+"tsv"))
             # run the FeatureFinderMetaboIdent with the metabo_table and aligned mzML file path
-            ffmid.run(library, feature_map, mzML_file)
+            ffmid.run(metabo_table, feature_map, mzML_file)
             print(feature_map.size())
             feature_map.setUnassignedPeptideIdentifications([])
             feature_map.setProteinIdentifications([])
+            # set number of mass traces (for SIRIUS)
+            fm_include_mass_traces = FeatureMap(feature_map)
+            fm_include_mass_traces.clear(False)
+            for feature in feature_map:
+                feature.setMetaValue("num_mass_traces", ffmid_params[b"extract:n_isotopes"])
+                fm_include_mass_traces.push_back(feature)
+            feature_map = fm_include_mass_traces
             if os.path.isdir(featureXML):
                 FeatureXMLFile().store(os.path.join(featureXML, os.path.basename(
                     mzML_file)[:-4] + "featureXML"), feature_map)
@@ -246,8 +261,8 @@ class FeatureFinderMetaboIdent:
 
 
 class MetaboliteAdductDecharger:
-    def run(fm_dir, fm_decharged_dir, params={}):
-        Helper.reset_directory(fm_decharged_dir)
+    def run(self, fm_dir, fm_decharged_dir, params={}):
+        Helper().reset_directory(fm_decharged_dir)
         for file in os.listdir(fm_dir):
             feature_map = FeatureMap()
             FeatureXMLFile().load(os.path.join(fm_dir, file), feature_map)
@@ -265,8 +280,8 @@ class MetaboliteAdductDecharger:
 
 
 class MapID:
-    def run(mzML_dir, fm_dir, fm_mapped_dir):
-        Helper.reset_directory(fm_mapped_dir)
+    def run(self, mzML_dir, fm_dir, fm_mapped_dir):
+        Helper().reset_directory(fm_mapped_dir)
         use_centroid_rt = False
         use_centroid_mz = True
         mapper = IDMapper()
