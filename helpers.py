@@ -21,7 +21,7 @@ class Helper:
         return feature_maps
 
 class FeatureMapHelper:
-    def split_consensus_map(consensusXML_file, consensusXML_complete_file="", consensusXML_missing_file=""):
+    def split_consensus_map(self, consensusXML_file, consensusXML_complete_file="", consensusXML_missing_file=""):
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         headers = consensus_map.getColumnHeaders()
@@ -40,7 +40,7 @@ class FeatureMapHelper:
             ConsensusXMLFile().store(consensusXML_missing_file, missing)
 
     # takes a (filtered) ConsensusMap (usually the complete) and reconstructs the FeatureMaps
-    def consensus_to_feature_maps(consensusXML_file, original_featureXML_dir, reconstructed_featureXML_dir):
+    def consensus_to_feature_maps(self, consensusXML_file, original_featureXML_dir, reconstructed_featureXML_dir):
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         to_keep_ids = [item for sublist in [[feature.getUniqueId(
