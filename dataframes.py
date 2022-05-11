@@ -10,7 +10,7 @@ class DataFrames:
                 df["adduct"] = [cf.getMetaValue("best ion") for cf in consensus_map]
                 break
         for cf in consensus_map:
-            if cf.metaValueExists("best ion"):
+            if cf.metaValueExists("label"):
                 df["name"] = [cf.getMetaValue("label") for cf in consensus_map]
                 break
         df.to_csv(table_file, sep="\t")
