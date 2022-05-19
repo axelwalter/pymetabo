@@ -250,7 +250,7 @@ class FeatureFinderMetaboIdent:
             fm_include_mass_traces = FeatureMap(feature_map)
             fm_include_mass_traces.clear(False)
             for feature in feature_map:
-                feature.setMetaValue("num_mass_traces", ffmid_params[b"extract:n_isotopes"])
+                feature.setMetaValue("num_of_masstraces", ffmid_params[b"extract:n_isotopes"])
                 fm_include_mass_traces.push_back(feature)
             feature_map = fm_include_mass_traces
             if os.path.isdir(featureXML):
@@ -296,3 +296,35 @@ class MapID:
                     protein_ids = []
                     mapper.annotate(fm, peptide_ids, protein_ids, use_centroid_rt, use_centroid_mz, exp)
                     FeatureXMLFile().store(os.path.join(fm_mapped_dir, feature_file), fm)
+
+class PrecursorCorrection:
+    def to_highest_intensity(self, mzML_dir, mzML_corrected_dir):
+        mzML_files = os.listdir(mzML_dir)
+        Helper().reset_directory(mzML_corrected_dir)
+        for filename in mzML_files:
+            exp = MSExperiment()
+            MzMLFile().load(os.path.join(mzML_dir, filename), exp)
+            exp.sortSpectra(True)
+            delta_mzs= []
+            mzs = []
+            rts= []
+            PrecursorCorrection.correctToHighestIntensityMS1Peak(exp, 100.0, True, delta_mzs, mzs, rts)
+            MzMLFile().store(os.path.join(mzML_corrected_dir, filename), exp)
+
+    def to_nearest_feature(self, mzML_dir, mzML_corrected_dir, featureXML_dir):
+        Helper().reset_directory(mzML_corrected_dir)
+        mzML_files = os.listdir(mzML_dir)
+        feature_files = os.listdir(featureXML_dir)
+        for mzml_file in mzML_files:
+            exp = MSExperiment()
+            MzMLFile().load(os.path.join(mzML_dir, mzml_file), exp)
+            exp.sortSpectra(True)
+            correct = PrecursorCorrection()
+            for feature_file in feature_files:
+                feature_map_MFD = FeatureMap()
+                FeatureXMLFile().load(os.path.join(featureXML_dir, feature_file), feature_map_MFD)
+                if os.path.basename(mzml_file)[:-5] == os.path.basename(feature_file)[:-11]:
+                    correct.correctToNearestFeature(feature_map_MFD, exp, 0.0, 100.0, True, False, False, False, 3, 0)
+                    corrected_file = os.path.join(mzML_corrected_dir, mzml_file)
+                    MzMLFile().store(corrected_file, exp)
+
