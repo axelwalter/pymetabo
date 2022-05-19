@@ -3,13 +3,14 @@ from pymetabo.core import *
 from pymetabo.helpers import *
 from pymetabo.dataframes import *
 
-mzML_dir = "/home/axel/Nextcloud/workspace/MetabolomicsWorkflowMayer/mzML"
 mzML_dir = "/home/axel/Nextcloud/workspace/Tests/CentogeneWorkflowTest/mzML"
 
 results = Helper().reset_directory("results")
 interim = Helper().reset_directory(os.path.join(results, "interim"))
 
-FeatureFinderMetabo().run(mzML_dir, os.path.join(interim, "FFM"),
+PrecursorCorrector().to_highest_intensity(mzML_dir, os.path.join(interim, "mzML_PCpeak"))
+
+FeatureFinderMetabo().run(os.path.join(interim, "mzML_PCpeak"), os.path.join(interim, "FFM"),
                         {"noise_threshold_int": 10000.0,
                         "mass_error_ppm": 10.0,
                         "remove_single_traces": "true"})
@@ -21,7 +22,11 @@ MapAligner().run(os.path.join(interim, "FFM"), os.path.join(interim, "FFM_aligne
                 "pairfinder:distance_MZ:max_difference": 10.0,
                 "pairfinder:distance_MZ:unit": "ppm"})
 
-MapAligner().run(mzML_dir, os.path.join(interim, "MzML_aligned"),
+PrecursorCorrector().to_nearest_feature(os.path.join(interim, "mzML_PCpeak"), 
+                                        os.path.join(interim, "mzML_PCfeature"),
+                                        os.path.join(interim, "FFM"))
+
+MapAligner().run(os.path.join(interim, "mzML_PCfeature"), os.path.join(interim, "MzML_aligned"),
                 os.path.join(interim, "Trafo"))
 
 FeatureLinker().run(os.path.join(interim, "FFM_aligned"),

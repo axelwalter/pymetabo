@@ -297,7 +297,7 @@ class MapID:
                     mapper.annotate(fm, peptide_ids, protein_ids, use_centroid_rt, use_centroid_mz, exp)
                     FeatureXMLFile().store(os.path.join(fm_mapped_dir, feature_file), fm)
 
-class PrecursorCorrection:
+class PrecursorCorrector:
     def to_highest_intensity(self, mzML_dir, mzML_corrected_dir):
         mzML_files = os.listdir(mzML_dir)
         Helper().reset_directory(mzML_corrected_dir)
