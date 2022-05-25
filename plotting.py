@@ -13,6 +13,26 @@ def cycle(my_list):
         start_at = (start_at + 1) % len(my_list)
 
 class Plot:
+    def extracted_chroms(self, df_chrom, chroms=[], df_auc = None):
+        colors = cycle(COLORS)
+        traces_line = []
+        traces_bar = []
+        for chrom in chroms:
+            color = next(colors)
+            traces_line.append(go.Scatter(x=df_chrom["time"], y=df_chrom[chrom], name=chrom, mode="lines", line_color=color))
+            if len(df_auc) == 1 and chrom in df_auc.columns:
+                traces_bar.append(go.Bar(x=[chrom], y=[df_auc[chrom][0]], name=chrom, marker_color=color))
+        fig_chrom = go.Figure()
+        fig_auc = go.Figure()
+        for trace in traces_line:
+            fig_chrom.add_trace(trace)
+        for trace in traces_bar:
+            fig_auc.add_trace(trace)
+        fig_chrom.update_layout(xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))  
+        fig_auc.update_layout(xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
+        fig_auc.update_traces(width=0.15)
+        return fig_chrom, fig_auc      
+
     def FFMID_chroms_from_df(self, df, compounds = []):
         colors = cycle(COLORS)
         if compounds:
