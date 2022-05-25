@@ -18,7 +18,10 @@ class Plot:
         traces_line = []
         traces_bar = []
         for chrom in chroms:
-            color = next(colors)
+            if chrom == "BPC":
+                color = "#DDDDDD"
+            else:
+                color = next(colors)
             traces_line.append(go.Scatter(x=df_chrom["time"], y=df_chrom[chrom], name=chrom, mode="lines", line_color=color))
             if len(df_auc) == 1 and chrom in df_auc.columns:
                 traces_bar.append(go.Bar(x=[chrom], y=[df_auc[chrom][0]], name=chrom, marker_color=color))
