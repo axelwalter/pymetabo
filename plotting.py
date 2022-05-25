@@ -19,7 +19,9 @@ class Plot:
         traces_bar = []
         for chrom in chroms:
             if chrom == "BPC":
-                color = "#DDDDDD"
+                color = "#CCCCCC"
+            elif chrom == "AUC baseline":
+                color = "#555555"
             else:
                 color = next(colors)
             traces_line.append(go.Scatter(x=df_chrom["time"], y=df_chrom[chrom], name=chrom, mode="lines", line_color=color))
