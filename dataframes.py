@@ -1,3 +1,4 @@
+from matplotlib.pyplot import table
 from pyopenms import *
 import pandas as pd
 
@@ -14,7 +15,10 @@ class DataFrames:
             if cf.metaValueExists("label"):
                 df["name"] = [cf.getMetaValue("label") for cf in consensus_map]
                 break
-        df.to_csv(table_file, sep="\t")
+        if table_file.endswith("tsv"):
+            df.to_csv(table_file, sep="\t")
+        elif table_file.endswith("ftr"):
+            df.to_feather(table_file)
         return df
     
     def FFMID_chroms_to_df(self, featureXML_file, table_file):
@@ -27,4 +31,7 @@ class DataFrames:
                 chroms[name + "_int"] = [int(y[1]) for y in sub.getConvexHulls()[0].getHullPoints()]
                 chroms[name + "_RT"] = [x[0] for x in sub.getConvexHulls()[0].getHullPoints()]
         df = pd.DataFrame({ key:pd.Series(value) for key, value in chroms.items() })
-        df.to_csv(featureXML_file[:-10]+"tsv", sep="\t")
+        if table_file.endswith("tsv"):
+            df.to_csv(featureXML_file[:-10]+"tsv", sep="\t")
+        elif table_file.endswith("ftr"):
+            df.to_feather(table_file)
