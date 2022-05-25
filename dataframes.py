@@ -1,4 +1,5 @@
 from pyopenms import *
+import pandas as pd
 
 class DataFrames:
     def create_consensus_table(self, consensusXML_file, table_file):
@@ -15,3 +16,15 @@ class DataFrames:
                 break
         df.to_csv(table_file, sep="\t")
         return df
+    
+    def FFMID_chroms_to_df(self, featureXML_file, table_file):
+        fm = FeatureMap()
+        FeatureXMLFile().load(featureXML_file, fm)
+        chroms = {}
+        for f in fm:
+            for i, sub in enumerate(f.getSubordinates()):
+                name = f.getMetaValue('label') + "_" + str(i+1)
+                chroms[name + "_int"] = [int(y[1]) for y in sub.getConvexHulls()[0].getHullPoints()]
+                chroms[name + "_RT"] = [x[0] for x in sub.getConvexHulls()[0].getHullPoints()]
+        df = pd.DataFrame({ key:pd.Series(value) for key, value in chroms.items() })
+        df.to_csv(featureXML_file[:-10]+"tsv", sep="\t")
