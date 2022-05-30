@@ -35,3 +35,15 @@ class DataFrames:
             df.to_csv(featureXML_file[:-10]+"tsv", sep="\t")
         elif table_file.endswith("ftr"):
             df.to_feather(table_file)
+
+    def FFMID_auc_to_df(self, featureXML_file, table_file):
+        fm = FeatureMap()
+        FeatureXMLFile().load(featureXML_file, fm)
+        aucs = {}
+        for f in fm:
+            aucs[f.getMetaValue('label')] = [f.getIntensity()]
+        df = pd.DataFrame({ key:pd.Series(value) for key, value in aucs.items() })
+        if table_file.endswith("tsv"):
+            df.to_csv(featureXML_file[:-10]+"tsv", sep="\t")
+        elif table_file.endswith("ftr"):
+            df.to_feather(table_file)
