@@ -32,7 +32,7 @@ class DataFrames:
                 chroms[name + "_RT"] = [x[0] for x in sub.getConvexHulls()[0].getHullPoints()]
         df = pd.DataFrame({ key:pd.Series(value) for key, value in chroms.items() })
         if table_file.endswith("tsv"):
-            df.to_csv(featureXML_file[:-10]+"tsv", sep="\t")
+            df.to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
             df.to_feather(table_file)
 
@@ -44,6 +44,22 @@ class DataFrames:
             aucs[f.getMetaValue('label')] = [int(f.getIntensity())]
         df = pd.DataFrame({ key:pd.Series(value) for key, value in aucs.items() })
         if table_file.endswith("tsv"):
-            df.to_csv(featureXML_file[:-10]+"tsv", sep="\t")
+            df.to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
             df.to_feather(table_file)
+
+    def FFMID_auc_combined_to_df(self, df_auc_file, table_file):
+        if df_auc_file.endswith("tsv"):
+            df = pd.read_csv(df_auc_file, sep="\t")
+        elif df_auc_file.endswith("ftr"):
+            df = pd.read_feather(df_auc_file)
+        aucs_condensed = {}
+        for a in set([c.split("#")[0] for c in df.columns]):
+            aucs_condensed[a] = 0
+            for b in [b for b in df.columns if ((a+"#" in b and b.startswith(a)) or a == b)]:
+                aucs_condensed[a] += df[b][0]
+        df_combined = pd.DataFrame({ key:pd.Series(value) for key, value in aucs_condensed.items() })
+        if table_file.endswith("tsv"):
+            df_combined.to_csv(table_file, sep="\t")
+        elif table_file.endswith("ftr"):
+            df_combined.to_feather(table_file)
