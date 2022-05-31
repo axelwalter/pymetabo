@@ -13,7 +13,7 @@ def cycle(my_list):
         start_at = (start_at + 1) % len(my_list)
 
 class Plot:
-    def extracted_chroms(self, df_chrom, chroms=[], df_auc = None, title=""):
+    def extracted_chroms(self, df_chrom, chroms=[], df_auc = None, title="", time_unit="seconds"):
         colors = cycle(COLORS)
         traces_line = []
         traces_bar = []
@@ -33,10 +33,10 @@ class Plot:
             fig_chrom.add_trace(trace)
         for trace in traces_bar:
             fig_auc.add_trace(trace)
-        fig_chrom.update_layout(title=title, xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))  
+        fig_chrom.update_layout(title=title, xaxis=dict(title=f"time ({time_unit})"), yaxis=dict(title="intensity (counts per second)"))  
         fig_auc.update_layout(title=title, xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
         fig_auc.update_traces(width=0.15)
-        return fig_chrom, fig_auc      
+        return fig_chrom, fig_auc        
 
     def FFMID_chroms_from_df(self, df, compounds = []):
         colors = cycle(COLORS)
