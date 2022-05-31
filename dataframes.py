@@ -41,7 +41,7 @@ class DataFrames:
         FeatureXMLFile().load(featureXML_file, fm)
         aucs = {}
         for f in fm:
-            aucs[f.getMetaValue('label')] = [f.getIntensity()]
+            aucs[f.getMetaValue('label')] = [int(f.getIntensity())]
         df = pd.DataFrame({ key:pd.Series(value) for key, value in aucs.items() })
         if table_file.endswith("tsv"):
             df.to_csv(featureXML_file[:-10]+"tsv", sep="\t")
