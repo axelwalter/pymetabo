@@ -1,6 +1,7 @@
 from matplotlib.pyplot import table
 from pyopenms import *
 import pandas as pd
+import os
 
 class DataFrames:
     def create_consensus_table(self, consensusXML_file, table_file):
@@ -16,9 +17,9 @@ class DataFrames:
                 df["name"] = [cf.getMetaValue("label") for cf in consensus_map]
                 break
         if table_file.endswith("tsv"):
-            df.to_csv(table_file, sep="\t")
+            df.reset_index().to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
-            df.to_feather(table_file)
+            df.reset_index().to_feather(table_file)
         return df
     
     def FFMID_chroms_to_df(self, featureXML_file, table_file, time_unit = "seconds"):
@@ -35,9 +36,9 @@ class DataFrames:
                 chroms[name + "_RT"] = [x[0]/time_factor for x in sub.getConvexHulls()[0].getHullPoints()]
         df = pd.DataFrame({ key:pd.Series(value) for key, value in chroms.items() })
         if table_file.endswith("tsv"):
-            df.to_csv(table_file, sep="\t")
+            df.reset_index().to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
-            df.to_feather(table_file)
+            df.reset_index().to_feather(table_file)
 
     def FFMID_auc_to_df(self, featureXML_file, table_file):
         fm = FeatureMap()
@@ -47,9 +48,9 @@ class DataFrames:
             aucs[f.getMetaValue('label')] = [int(f.getIntensity())]
         df = pd.DataFrame({ key:pd.Series(value) for key, value in aucs.items() })
         if table_file.endswith("tsv"):
-            df.to_csv(table_file, sep="\t")
+            df.reset_index().to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
-            df.to_feather(table_file)
+            df.reset_index().to_feather(table_file)
 
     def FFMID_auc_combined_to_df(self, df_auc_file, table_file):
         if df_auc_file.endswith("tsv"):
@@ -63,6 +64,23 @@ class DataFrames:
                 aucs_condensed[a] += df[b][0]
         df_combined = pd.DataFrame({ key:pd.Series(value) for key, value in aucs_condensed.items() })
         if table_file.endswith("tsv"):
-            df_combined.to_csv(table_file, sep="\t")
+            df_combined.reset_index().to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
-            df_combined.to_feather(table_file)
+            df_combined.reset_index().to_feather(table_file)
+
+    def get_auc_summary(self, df_files, table_file):
+        # get a list of auc dataframe file paths (df_files), combine them into a summary (consensus) df
+        dfs = []
+        for file in df_files:
+            if file.endswith("tsv"):
+                df = pd.read_csv(file, sep="\t")
+            elif file.endswith("ftr"):
+                df = pd.read_feather(file)
+            df.index = [[os.path.basename(file)[:-4]]]
+            dfs.append(df)
+        summary = pd.concat(dfs).drop(columns=["index"])
+        print(summary.columns)
+        if table_file.endswith("tsv"):
+            summary.reset_index().to_csv(table_file, sep="\t")
+        elif table_file.endswith("ftr"):
+            summary.reset_index().to_feather(table_file)
