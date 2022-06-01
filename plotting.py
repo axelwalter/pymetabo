@@ -35,25 +35,43 @@ class Plot:
             fig_auc.add_trace(trace)
         fig_chrom.update_layout(title=title, xaxis=dict(title=f"time ({time_unit})"), yaxis=dict(title="intensity (counts per second)"))  
         fig_auc.update_layout(title=title, xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
-        fig_auc.update_traces(width=0.15)
+        fig_auc.update_traces(width=0.3)
         return fig_chrom, fig_auc        
 
-    def FFMID_chroms_from_df(self, df, compounds = []):
+    def FFMID(self, df_chrom, compounds = [], df_auc = None, df_auc_combined = None, title="", time_unit="seconds"):
         colors = cycle(COLORS)
         if compounds:
             trace_names = compounds
         else:
-            trace_names = set([c[:-5] for c in df.columns if c.endswith("RT")])
-        traces = []
+            trace_names = set([c[:-5] for c in df_chrom.columns if c.endswith("RT")])
+        traces_line = []
+        traces_bar = []
+        traces_bar_combined = []
         for name in trace_names:
             color = next(colors)
             i = 1
-            while name+"_"+str(i)+"_RT" in df.columns:
+            while name+"_"+str(i)+"_RT" in df_chrom.columns:
                 label = name+"_"+str(i)
-                traces.append(go.Scatter(x=df[label+"_RT"], y=df[label+"_int"], name=label, mode="lines", line_color=color)) 
+                traces_line.append(go.Scatter(x=df_chrom[label+"_RT"], y=df_chrom[label+"_int"], name=label, mode="lines", line_color=color)) 
+                if len(df_auc) == 1 and name in df_auc.columns and i == 1:
+                    traces_bar.append(go.Bar(x=[name], y=[df_auc[name][0]], name=name, marker_color=color))
                 i += 1
-        fig = go.Figure()
-        for trace in traces:
-            fig.add_trace(trace)
-        fig.update_layout(xaxis=dict(title="time"), yaxis=dict(title="intensity (cps)"))
-        return fig
+        if len(df_auc) == 1:
+            colors = cycle(COLORS)
+            for name in df_auc_combined.columns:
+                color = next(colors)
+                traces_bar_combined.append(go.Bar(x=[name], y=[df_auc_combined[name][0]], name=name, marker_color=color))
+        fig_chrom = go.Figure()
+        fig_auc = go.Figure()
+        fig_auc_combined = go.Figure()
+        for trace in traces_line:
+            fig_chrom.add_trace(trace)
+        for trace in traces_bar:
+            fig_auc.add_trace(trace)
+        for trace in traces_bar_combined:
+            fig_auc_combined.add_trace(trace)
+        fig_chrom.update_layout(title=title, xaxis=dict(title=f"time ({time_unit})"), yaxis=dict(title="intensity (cps)"))
+        for fig in (fig_auc, fig_auc_combined):
+            fig.update_layout(title=title, xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
+            fig.update_traces(width=0.3)
+        return fig_chrom, fig_auc, fig_auc_combined
