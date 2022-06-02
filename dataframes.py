@@ -56,7 +56,7 @@ class DataFrames:
         if df_auc_file.endswith("tsv"):
             df = pd.read_csv(df_auc_file, sep="\t")
         elif df_auc_file.endswith("ftr"):
-            df = pd.read_feather(df_auc_file)
+            df = pd.read_feather(df_auc_file).drop(columns=["index"])
         aucs_condensed = {}
         for a in set([c.split("#")[0] for c in df.columns]):
             aucs_condensed[a] = 0
@@ -71,15 +71,17 @@ class DataFrames:
     def get_auc_summary(self, df_files, table_file):
         # get a list of auc dataframe file paths (df_files), combine them into a summary (consensus) df
         dfs = []
+        indeces = []
         for file in df_files:
             if file.endswith("tsv"):
                 df = pd.read_csv(file, sep="\t")
             elif file.endswith("ftr"):
-                df = pd.read_feather(file)
-            df.index = [[os.path.basename(file)[:-4]]]
+                df = pd.read_feather(file).drop(columns=["index"])
+            print(df.columns)
             dfs.append(df)
-        summary = pd.concat(dfs).drop(columns=["index"])
-        print(summary.columns)
+            indeces.append(os.path.basename(file)[:-4])
+        summary = pd.concat(dfs)
+        summary = summary.set_index(pd.Series(indeces))
         if table_file.endswith("tsv"):
             summary.reset_index().to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
