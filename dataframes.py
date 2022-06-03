@@ -72,18 +72,27 @@ class DataFrames:
         # get a list of auc dataframe file paths (df_files), combine them into a summary (consensus) df
         dfs = []
         indeces = []
+        empty = []
         for file in df_files:
             if file.endswith("tsv"):
                 df = pd.read_csv(file, sep="\t")
             elif file.endswith("ftr"):
                 df = pd.read_feather(file).drop(columns=["index"])
-            dfs.append(df)
-            indeces.append(os.path.basename(file)[:-4].split("AUC")[0])
-        summary = pd.concat(dfs)
-        summary = summary.set_index(pd.Series(indeces))
-        summary = summary.transpose()
-        summary.sort_index(axis=1, inplace=True)
+            sample_name = os.path.basename(file)[:-4].split("AUC")[0]
+            if df.empty:
+                empty.append(sample_name)
+            else:
+                dfs.append(df)
+                indeces.append(sample_name)
+        df = pd.concat(dfs)
+        df = df.set_index(pd.Series(indeces))
+        df = df.transpose()
+        df = df.fillna(0)
+        for sample in empty:
+            df[sample] = 0
+        df = df.applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
+        df.sort_index(axis=1, inplace=True)
         if table_file.endswith("tsv"):
-            summary.reset_index().to_csv(table_file, sep="\t")
+            df.reset_index().to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
-            summary.reset_index().to_feather(table_file)
+            df.reset_index().to_feather(table_file)
