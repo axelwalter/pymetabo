@@ -1,4 +1,5 @@
 import plotly.graph_objects as go
+import pandas as pd
 
 COLORS=['rgb(31, 119, 180)', 'rgb(255, 127, 14)',
         'rgb(44, 160, 44)', 'rgb(214, 39, 40)',
@@ -75,3 +76,12 @@ class Plot:
             fig.update_layout(title=title, xaxis=dict(title=""), yaxis=dict(title="area under curve (counts)"))
             fig.update_traces(width=0.3)
         return fig_chrom, fig_auc, fig_auc_combined
+
+    def FeatureMatrix(self, df, samples=[], features=[], title=""):
+        samples = df.columns.tolist()
+        features = df.index.tolist()
+        fig = go.Figure()
+        for feature in features:
+            fig.add_trace(go.Bar(x=samples, y=df.loc[feature], name=feature))
+        fig.update_layout(title=title, yaxis=dict(title="area under curve (counts)"))
+        return fig
