@@ -77,12 +77,12 @@ class DataFrames:
                 df = pd.read_csv(file, sep="\t")
             elif file.endswith("ftr"):
                 df = pd.read_feather(file).drop(columns=["index"])
-            print(df.columns)
             dfs.append(df)
-            indeces.append(os.path.basename(file)[:-4])
+            indeces.append(os.path.basename(file)[:-4].split("AUC")[0])
         summary = pd.concat(dfs)
         summary = summary.set_index(pd.Series(indeces))
         summary = summary.transpose()
+        summary.sort_index(axis=1, inplace=True)
         if table_file.endswith("tsv"):
             summary.reset_index().to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
