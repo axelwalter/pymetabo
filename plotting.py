@@ -1,11 +1,11 @@
 import plotly.graph_objects as go
 import pandas as pd
 
-COLORS=['rgb(31, 119, 180)', 'rgb(255, 127, 14)',
-        'rgb(44, 160, 44)', 'rgb(214, 39, 40)',
-        'rgb(148, 103, 189)', 'rgb(140, 86, 75)',
-        'rgb(227, 119, 194)', 'rgb(127, 127, 127)',
-        'rgb(188, 189, 34)', 'rgb(23, 190, 207)']
+COLORS=['#636efa', '#ef553b',
+        '#00cc96', '#ab63fa',
+        '#ffa15a', '#19d3f3',
+        '#ff6692', '#b6e880',
+        '#fe9aff', 'rgb(23, 190, 207)']
 
 def cycle(my_list):
     start_at = 0
