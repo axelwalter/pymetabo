@@ -77,7 +77,7 @@ class DataFrames:
             if file.endswith("tsv"):
                 df = pd.read_csv(file, sep="\t")
             elif file.endswith("ftr"):
-                df = pd.read_feather(file).drop(columns=["index"])
+                df = pd.read_feather(file)
             sample_name = os.path.basename(file)[:-4].split("AUC")[0]
             if df.empty:
                 empty.append(sample_name)
@@ -93,6 +93,6 @@ class DataFrames:
         df = df.applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
         df.sort_index(axis=1, inplace=True)
         if table_file.endswith("tsv"):
-            df.reset_index().to_csv(table_file, sep="\t")
+            df.to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
             df.reset_index().to_feather(table_file)
