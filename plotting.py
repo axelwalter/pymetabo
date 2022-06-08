@@ -1,4 +1,5 @@
 import plotly.graph_objects as go
+import plotly.express as px
 import pandas as pd
 
 COLORS=['#636efa', '#ef553b',
@@ -77,11 +78,23 @@ class Plot:
             fig.update_traces(width=0.3)
         return fig_chrom, fig_auc, fig_auc_combined
 
-    def FeatureMatrix(self, df, samples=[], features=[], title=""):
+    def FeatureMatrix(self, df, samples=[], features=[], title="", y_title = "area under curve (counts)"):
         samples = df.columns.tolist()
         features = df.index.tolist()
         fig = go.Figure()
         for feature in features:
             fig.add_trace(go.Bar(x=samples, y=df.loc[feature], name=feature))
-        fig.update_layout(title=title, yaxis=dict(title="area under curve (counts)"))
+        fig.update_layout(title=title, yaxis=dict(title=y_title))
+        return fig
+    
+    def FeatureMatrixHeatMap(self, df, title=""):
+        fig = go.Figure(data=go.Heatmap({'z': df.values.tolist(),
+                                        'x': df.columns.tolist(),
+                                        'y': df.index.tolist()},
+                                        colorscale= [[0, 'rgba(69, 117, 180, 1.0)'],   
+                                               [ 0-df.min().min()/(df.max().max()-df.min().min()), 'rgba(255, 255, 255, 1.0)'],  
+                                        [1, 'rgba(215,48,39, 1.0)']]))
+        fig.layout.width = 200+10*len(df.columns)
+        fig.layout.height = 30*len(df.index)
+        fig.update_layout(title=title)
         return fig
