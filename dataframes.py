@@ -16,8 +16,11 @@ class DataFrames:
             if cf.metaValueExists("label"):
                 df["name"] = [cf.getMetaValue("label") for cf in consensus_map]
                 break
+        df.index = [f"{round(mz, 4)}@{int(rt)}" for mz, rt in zip(df["mz"].tolist(), df["RT"].tolist())]
+        not_sample = [c for c in df.columns if c not in ["mz", "RT", "charge", "adduct", "name", "quality"]]
+        df[not_sample] = df[not_sample].applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
         if table_file.endswith("tsv"):
-            df.reset_index().to_csv(table_file, sep="\t")
+            df.to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
             df.reset_index().to_feather(table_file)
         return df
@@ -78,6 +81,9 @@ class DataFrames:
                 df = pd.read_csv(file, sep="\t")
             elif file.endswith("ftr"):
                 df = pd.read_feather(file)
+                if "index" in df.columns:
+                    df.index = df["index"]
+                    df = df.drop(columns=["index"])
             sample_name = os.path.basename(file)[:-4].split("AUC")[0]
             if df.empty:
                 empty.append(sample_name)
