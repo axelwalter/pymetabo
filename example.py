@@ -1,10 +1,10 @@
 import os
-from pymetabo.core import *
-from pymetabo.helpers import *
-from pymetabo.dataframes import *
-from pymetabo.sirius import *
+from core import *
+from helpers import *
+from dataframes import *
+from sirius import *
 
-mzML_dir = "/home/axel/Documents/validation_mzML"
+mzML_dir = "../data/mzML"
 
 results = Helper().reset_directory("results")
 interim = Helper().reset_directory(os.path.join(results, "interim"))
