@@ -16,7 +16,10 @@ class DataFrames:
             if cf.metaValueExists("label"):
                 df["name"] = [cf.getMetaValue("label") for cf in consensus_map]
                 break
-        df.index = [f"{round(mz, 4)}@{int(rt)}" for mz, rt in zip(df["mz"].tolist(), df["RT"].tolist())]
+        if "adduct" in df.columns:
+            df.index = [f"{round(mz, 4)}@{int(rt)}@{adduct}" for mz, rt, adduct in zip(df["mz"].tolist(), df["RT"].tolist(), df["adduct"].tolist())]
+        else:    
+            df.index = [f"{round(mz, 4)}@{int(rt)}" for mz, rt in zip(df["mz"].tolist(), df["RT"].tolist())]
         not_sample = [c for c in df.columns if c not in ["mz", "RT", "charge", "adduct", "name", "quality"]]
         df[not_sample] = df[not_sample].applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
         if table_file.endswith("tsv"):
