@@ -4,7 +4,7 @@ from pyopenms import *
 from .helpers import Helper
 
 class Sirius:
-    def run(self, mzML_dir, featureXML_dir, sirius_dir, params={}):
+    def run(self, mzML_dir, featureXML_dir, sirius_dir, sirius_executable_path, only_export_ms_file, params={}):
         Helper().reset_directory(sirius_dir)
 
         feature_files = sorted(os.listdir(featureXML_dir))
@@ -12,6 +12,7 @@ class Sirius:
         no_convex_hulls_dir = Helper().reset_directory(os.path.join(sirius_dir, "no_convex_hulls"))
         formula_dir = Helper().reset_directory(os.path.join(sirius_dir, "formulas"))
         structure_dir = Helper().reset_directory(os.path.join(sirius_dir, "structures"))
+        ms_dir = Helper().reset_directory(os.path.join(sirius_dir, "sirius_files"))
 
         for mzML_file in mzml_files:
             exp = MSExperiment()
@@ -57,12 +58,16 @@ class Sirius:
                                 sirius_algo.getIsotopePatternIterations(), 
                                 sirius_algo.isNoMasstraceInfoIsotopePattern(), 
                                 []) # empty compound info
+                    
+                    shutil.copy(sirius_tmp.getTmpMsFile(), ms_dir)
+
+                    if only_export_ms_file:
+                        continue
 
                     out_csifingerid = os.path.join(structure_dir, mzML_file[:-5] +".mzTab")
-                    executable = shutil.which("sirius")
                     subdirs = sirius_algo.callSiriusQProcess(String(sirius_tmp.getTmpMsFile()),
                                                             String(sirius_tmp.getTmpOutDir()),
-                                                            String(executable),
+                                                            String(sirius_executable_path),
                                                             String(out_csifingerid),
                                                             False)
                     sirius_result = MzTab()
