@@ -4,7 +4,10 @@ import pandas as pd
 import os
 
 class DataFrames:
-    def create_consensus_table(self, consensusXML_file, table_file):
+
+    def what():
+        return 1
+    def create_consensus_table(self, consensusXML_file, table_file, sirius_ms_dir=""):
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         df = consensus_map.get_df().drop(["sequence"], axis=1)
@@ -22,6 +25,25 @@ class DataFrames:
             df.index = [f"{round(mz, 4)}@{int(rt)}" for mz, rt in zip(df["mz"].tolist(), df["RT"].tolist())]
         not_sample = [c for c in df.columns if c not in ["mz", "RT", "charge", "adduct", "name", "quality"]]
         df[not_sample] = df[not_sample].applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
+
+        # annotate original feature Ids which are in the Sirius .ms files
+        if sirius_ms_dir:
+            files = [file for file in os.listdir(sirius_ms_dir)]
+            map = {value.filename: key  for key, value in consensus_map.getColumnHeaders().items()}
+            for file in files:
+                with open(os.path.join(sirius_ms_dir, file), "r") as f:
+                    content = f.read()
+                    key = map[file[:-2]+"mzML"]
+                    ids = []
+                    for cf in consensus_map:
+                        features = {fh[0]: fh[1].getUniqueId() for fh in enumerate(cf.getFeatureList())}
+                        feature_id = 0
+                        if key in features.keys():
+                            if str(features[key]) in content:
+                                feature_id = features[key]
+                        ids.append(feature_id)
+                    df[file] = ids
+
         if table_file.endswith("tsv"):
             df.to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
