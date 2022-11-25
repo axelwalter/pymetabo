@@ -90,14 +90,17 @@ class MapAligner:
 
             for feature_map in feature_maps[:ref_index] + feature_maps[ref_index+1:]:
                 trafo = TransformationDescription()
-                # store information on aligmentment in TransformationDescription, RTs in FeatureMap not modified at this point
-                aligner.align(feature_map, trafo)
-                transformer = MapAlignmentTransformer()
-                # FeatureMap, TransformationDescription, bool: keep original RTs as meta value
-                transformer.transformRetentionTimes(feature_map, trafo, True)
-                transformations[feature_map.getMetaValue("spectra_data")[0].decode()] = trafo
-                TransformationXMLFile().store(os.path.join(trafo_dir, os.path.basename(
-                    feature_map.getMetaValue("spectra_data")[0].decode())[:-4] + "trafoXML"), trafo)
+                try:
+                    # store information on aligmentment in TransformationDescription, RTs in FeatureMap not modified at this point
+                    aligner.align(feature_map, trafo)
+                    transformer = MapAlignmentTransformer()
+                    # FeatureMap, TransformationDescription, bool: keep original RTs as meta value
+                    transformer.transformRetentionTimes(feature_map, trafo, True)
+                    transformations[feature_map.getMetaValue("spectra_data")[0].decode()] = trafo
+                    TransformationXMLFile().store(os.path.join(trafo_dir, os.path.basename(
+                        feature_map.getMetaValue("spectra_data")[0].decode())[:-4] + "trafoXML"), trafo)
+                except RuntimeError: #WARNING: your map likely has a scaling around inf but your parameters only allow for a maximal scaling of 2
+                    pass
 
             for feature_map in feature_maps:
                 print(feature_map.size())
