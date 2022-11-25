@@ -61,8 +61,9 @@ class Sirius:
                                 sirius_algo.isNoMasstraceInfoIsotopePattern(), 
                                 []) # empty compound info
                     
-                    print(os.path.join(ms_dir, mzML_file[:-4]+"ms"))
-                    shutil.copy(sirius_tmp.getTmpMsFile(), os.path.join(ms_dir, mzML_file[:-4]+"ms"))
+                    # save only files with MS2 data (others will be empty)
+                    if os.path.isfile(sirius_tmp.getTmpMsFile()) and os.path.getsize(sirius_tmp.getTmpMsFile()) > 0:
+                        shutil.copy(sirius_tmp.getTmpMsFile(), os.path.join(ms_dir, mzML_file[:-4]+"ms"))
 
                     if only_export_ms_file:
                         continue
