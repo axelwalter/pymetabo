@@ -2,6 +2,7 @@ from matplotlib.pyplot import table
 from pyopenms import *
 import pandas as pd
 import os
+from pathlib import Path
 
 class DataFrames:
 
@@ -28,21 +29,26 @@ class DataFrames:
 
         # annotate original feature Ids which are in the Sirius .ms files
         if sirius_ms_dir:
-            files = [file for file in os.listdir(sirius_ms_dir)]
-            map = {value.filename: key  for key, value in consensus_map.getColumnHeaders().items()}
-            for file in files:
-                with open(os.path.join(sirius_ms_dir, file), "r") as f:
-                    content = f.read()
-                    key = map[file[:-2]+"mzML"]
-                    ids = []
+            ms_files = [Path(sirius_ms_dir, file) for file in os.listdir(sirius_ms_dir)]
+            map = {Path(value.filename).stem: key for key, value in consensus_map.getColumnHeaders().items()}
+            for file in ms_files:
+                if file.exists():
+                    key = map[file.stem]
+                    id_list = []
+                    content = file.read_text()
                     for cf in consensus_map:
-                        features = {fh[0]: fh[1].getUniqueId() for fh in enumerate(cf.getFeatureList())}
-                        feature_id = 0
-                        if key in features.keys():
-                            if str(features[key]) in content:
-                                feature_id = features[key]
-                        ids.append(feature_id)
-                    df[file] = ids
+                        # get a map with map index and feature id for each consensus feature -> get the feature id key exists
+                        f_map = {fh.getMapIndex(): fh.getUniqueId() for fh in cf.getFeatureList()}
+                        if key in f_map.keys():
+                            f_id = str(f_map[key])
+                        else:
+                            f_id = ""
+                        if f_id and f_id in content:
+                            id_list.append(f_id)
+                        else:
+                            id_list.append("")
+                    df[file.stem+"_SiriusID"] = id_list
+
 
         if table_file.endswith("tsv"):
             df.to_csv(table_file, sep="\t")
