@@ -27,6 +27,9 @@ class GNPSExport:
         IonIdentityMolecularNetworking().annotateConsensusMap(consensus_map)
         IonIdentityMolecularNetworking().writeSupplementaryPairTable(consensus_map, os.path.join(gnps_dir, "SupplementaryPairTable.csv"))
 
+        # finally remove filtered.consensusXML file
+        os.remove(consensusXML_file)
+
     def export_metadata_table_only(self, consensusXML_file, metadata_file):
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
