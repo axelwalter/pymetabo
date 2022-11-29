@@ -1,6 +1,7 @@
 from pyopenms import *
 from .helpers import Helper
 from pathlib import Path
+import os
 
 class GNPSExport:
     def run(self, consensusXML_file, aligned_mzML_dir, gnps_dir):
