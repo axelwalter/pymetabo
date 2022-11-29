@@ -4,7 +4,7 @@ from pathlib import Path
 
 class GNPSExport:
     def run(self, consensusXML_file, aligned_mzML_dir, mgf_file, quantification_file, metavalue_file, pair_table_file):
-        mzML_files = [f for f in Path(aligned_mzML_dir).iterdir() if f.is_file() and str(f).endswith("mzML")]
+        mzML_files = [str(f) for f in Path(aligned_mzML_dir).iterdir() if f.is_file() and str(f).endswith("mzML")]
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         filtered_map = ConsensusMap(consensus_map)
