@@ -3,7 +3,8 @@ from .helpers import Helper
 from pathlib import Path
 
 class GNPSExport:
-    def run(self, consensusXML_file, aligned_mzML_dir, mgf_file, quantification_file, metavalue_file, pair_table_file):
+    def run(self, consensusXML_file, aligned_mzML_dir, gnps_dir):
+        Helper().reset_directory(gnps_dir)
         mzML_files = [str(f) for f in Path(aligned_mzML_dir).iterdir() if f.is_file() and str(f).endswith("mzML")]
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
@@ -17,10 +18,10 @@ class GNPSExport:
         ConsensusXMLFile().store(consensusXML_file, filtered_map)
 
         # for FFBM
-        GNPSMGFFile().store(String(consensusXML_file), [file.encode() for file in mzML_files], String(mgf_file))
-        GNPSQuantificationFile().store(consensus_map, quantification_file)
-        GNPSMetaValueFile().store(consensus_map, metavalue_file)
+        GNPSMGFFile().store(String(consensusXML_file), [file.encode() for file in mzML_files], String(os.path.join(gnps_dir, "MS2.mgf")))
+        GNPSQuantificationFile().store(consensus_map, os.path.join(gnps_dir, "FeatureQantificationTable.txt"))
+        GNPSMetaValueFile().store(consensus_map, os.path.join(gnps_dir, "MetaValueTable.tsv"))
 
         # for IIMN
         IonIdentityMolecularNetworking().annotateConsensusMap(consensus_map)
-        IonIdentityMolecularNetworking().writeSupplementaryPairTable(consensus_map, pair_table_file)
+        IonIdentityMolecularNetworking().writeSupplementaryPairTable(consensus_map, os.path.join(gnps_dir, "SupplementaryPairTable.csv"))
