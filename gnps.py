@@ -1,7 +1,9 @@
 from pyopenms import *
 from .helpers import Helper
 from pathlib import Path
+import pandas as pd
 import os
+
 
 class GNPSExport:
     def run(self, consensusXML_file, aligned_mzML_dir, gnps_dir):
@@ -42,3 +44,7 @@ class GNPSExport:
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         GNPSMetaValueFile().store(consensus_map, metadata_file)
+        df = pd.read_csv(metadata_file, sep="\t", index_col=[0])
+        df["ATTRIBUTE_Sample_Type"] = ["Sample"]*df.shape[1]
+        df.drop("ATTRIBUTE_MAPID", inplace=True, axis=1)
+        df.to_csv(metadata_file, sep="\t", index=False)
