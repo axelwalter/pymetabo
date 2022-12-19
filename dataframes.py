@@ -21,9 +21,9 @@ class DataFrames:
                 df["name"] = [cf.getMetaValue("label") for cf in consensus_map]
                 break
         if "adduct" in df.columns:
-            df.index = [f"{round(mz, 4)}@{int(rt)}@{adduct}" for mz, rt, adduct in zip(df["mz"].tolist(), df["RT"].tolist(), df["adduct"].tolist())]
+            df.insert(0, "metabolite", [f"{round(mz, 4)}@{round(rt, 2)}@{adduct}" for mz, rt, adduct in zip(df["mz"].tolist(), df["RT"].tolist(), df["adduct"].tolist())])
         else:    
-            df.index = [f"{round(mz, 4)}@{int(rt)}" for mz, rt in zip(df["mz"].tolist(), df["RT"].tolist())]
+            df.insert(0, "metabolite", [f"{round(mz, 4)}@{round(rt, 2)}" for mz, rt in zip(df["mz"].tolist(), df["RT"].tolist())])
         not_sample = [c for c in df.columns if c not in ["mz", "RT", "charge", "adduct", "name", "quality"]]
         df[not_sample] = df[not_sample].applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
 
@@ -49,11 +49,11 @@ class DataFrames:
                             id_list.append("")
                     df[file.stem+"_SiriusID"] = id_list
 
-
         if table_file.endswith("tsv"):
             df.to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
             df.reset_index().to_feather(table_file)
+        print(df.columns)
         return df
     
     def FFMID_chroms_to_df(self, featureXML_file, table_file, time_unit = "seconds"):
@@ -129,6 +129,8 @@ class DataFrames:
             df[sample] = 0
         df = df.applymap(lambda x: int(round(x, 0)) if isinstance(x, (int, float)) else x)
         df.sort_index(axis=1, inplace=True)
+        df.insert(0, "metabolite", df.index)
+        df = df.set_index(pd.Series(range(1, len(df)+1)))
         if table_file.endswith("tsv"):
             df.to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
