@@ -6,7 +6,15 @@ import os
 class GNPSExport:
     def run(self, consensusXML_file, aligned_mzML_dir, gnps_dir):
         Helper().reset_directory(gnps_dir)
-        mzML_files = [str(f) for f in Path(aligned_mzML_dir).iterdir() if f.is_file() and str(f).endswith("mzML")]
+        all_mzML_files = [str(f) for f in Path(aligned_mzML_dir).iterdir() if f.is_file() and str(f).endswith("mzML")]
+        ms2_mzML_files = []
+        for file in all_mzML_files:
+            exp = MSExperiment()
+            MzMLFile().load(file, exp)
+            for spec in exp:
+                if spec.getMSLevel() == 2:
+                    ms2_mzML_files.append(file)
+                    break
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         filtered_map = ConsensusMap(consensus_map)
@@ -19,7 +27,7 @@ class GNPSExport:
         ConsensusXMLFile().store(consensusXML_file, filtered_map)
 
         # for FFBM
-        GNPSMGFFile().store(String(consensusXML_file), [file.encode() for file in mzML_files], String(os.path.join(gnps_dir, "MS2.mgf")))
+        GNPSMGFFile().store(String(consensusXML_file), [file.encode() for file in ms2_mzML_files], String(os.path.join(gnps_dir, "MS2.mgf")))
         GNPSQuantificationFile().store(consensus_map, os.path.join(gnps_dir, "FeatureQantificationTable.txt"))
         GNPSMetaValueFile().store(consensus_map, os.path.join(gnps_dir, "MetaValueTable.tsv"))
 
