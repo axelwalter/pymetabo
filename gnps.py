@@ -45,6 +45,6 @@ class GNPSExport:
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         GNPSMetaValueFile().store(consensus_map, metadata_file)
         df = pd.read_csv(metadata_file, sep="\t", index_col=[0])
-        df["ATTRIBUTE_Sample_Type"] = ["Sample"]*df.shape[1]
+        df["ATTRIBUTE_Sample_Type"] = ["Sample"]*len(df["filename"])
         df.drop("ATTRIBUTE_MAPID", inplace=True, axis=1)
         df.to_csv(metadata_file, sep="\t", index=False)
