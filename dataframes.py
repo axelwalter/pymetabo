@@ -1,20 +1,17 @@
-from matplotlib.pyplot import table
 from pyopenms import *
 import pandas as pd
 import os
 from pathlib import Path
+from .helpers import Helper
 
 class DataFrames:
-
-    def what():
-        return 1
     def create_consensus_table(self, consensusXML_file, table_file, sirius_ms_dir=""):
         consensus_map = ConsensusMap()
         ConsensusXMLFile().load(consensusXML_file, consensus_map)
         df = consensus_map.get_df().drop(["sequence"], axis=1)
         for cf in consensus_map:
             if cf.metaValueExists("best ion"):
-                df["adduct"] = [cf.getMetaValue("best ion") for cf in consensus_map]
+                df.insert(4, "adduct", [cf.getMetaValue("best ion") for cf in consensus_map])
                 break
         for cf in consensus_map:
             if cf.metaValueExists("label"):
@@ -135,3 +132,34 @@ class DataFrames:
             df.to_csv(table_file, sep="\t")
         elif table_file.endswith("ftr"):
             df.reset_index().to_feather(table_file)
+
+    def annotate_ms1(self, df_file, library_file, mz_window, rt_window):
+        df = pd.read_csv(df_file, sep="\t")
+        library = pd.read_csv(library_file, sep="\t")
+        df.insert(7, "MS1 annotation", "")
+
+        df["mz"] = df["mz"].astype(float)
+
+        for _, std in library.iterrows():
+            delta_Da = abs(mz_window*std["mz"] / 1000000)
+            mz_lower = std["mz"] - delta_Da
+            mz_upper = std["mz"] + delta_Da
+            rt_lower = std["RT"] - rt_window/2
+            rt_upper = std["RT"] + rt_window/2
+            match = df.query("mz > @mz_lower and mz < @mz_upper and RT > @rt_lower and RT < @rt_upper")
+            if not match.empty:
+                for _, row in match.iterrows():
+                    if len(df.loc[df["id"] == row["id"], "MS1 annotation"]) > 1:
+                        df.loc[df["id"] == row["id"], "MS1 annotation"] += ";"+std["name"]
+                    else:
+                        df.loc[df["id"] == row["id"], "MS1 annotation"] += std["name"]
+
+        # replace generic metabolite name with actual MS1 annotation
+        df["metabolite"] = [y  if y else x for x, y in zip(df["metabolite"], df["MS1 annotation"])]
+        df.to_csv(df_file, sep="\t", index=False)
+
+    def save_MS1_ids(self, df_file, ms1_dir):
+        Helper().reset_directory(ms1_dir)
+        df = pd.read_csv(df_file, sep="\t")
+        df = df[df["MS1 annotation"].notna()]
+        df.to_csv(os.path.join(ms1_dir, "MS1-annotations.tsv"), sep="\t", index=False)
