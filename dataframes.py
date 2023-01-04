@@ -3,6 +3,9 @@ import pandas as pd
 import os
 from pathlib import Path
 from .helpers import Helper
+import pyteomics
+from pyteomics import mztab, mgf
+import streamlit as st
 
 class DataFrames:
     def create_consensus_table(self, consensusXML_file, table_file, sirius_ms_dir=""):
@@ -136,7 +139,7 @@ class DataFrames:
     def annotate_ms1(self, df_file, library_file, mz_window, rt_window):
         df = pd.read_csv(df_file, sep="\t")
         library = pd.read_csv(library_file, sep="\t")
-        df.insert(7, "MS1 annotation", "")
+        df.insert(2, "MS1 annotation", "")
 
         df["mz"] = df["mz"].astype(float)
 
@@ -154,12 +157,47 @@ class DataFrames:
                     else:
                         df.loc[df["id"] == row["id"], "MS1 annotation"] += std["name"]
 
+
         # replace generic metabolite name with actual MS1 annotation
-        df["metabolite"] = [y  if y else x for x, y in zip(df["metabolite"], df["MS1 annotation"])]
+        df["metabolite"] = [y if y else x for x, y in zip(df["metabolite"], df["MS1 annotation"])]
         df.to_csv(df_file, sep="\t", index=False)
 
-    def save_MS1_ids(self, df_file, ms1_dir):
-        Helper().reset_directory(ms1_dir)
+    def save_MS_ids(self, df_file, ms_dir, column_name):
+        Helper().reset_directory(ms_dir)
         df = pd.read_csv(df_file, sep="\t")
-        df = df[df["MS1 annotation"].notna()]
-        df.to_csv(os.path.join(ms1_dir, "MS1-annotations.tsv"), sep="\t", index=False)
+        df = df[df[column_name].notna()]
+        filename = column_name.replace(" ", "-") + ".tsv"
+        df.to_csv(os.path.join(ms_dir, filename), sep="\t", index=False)
+
+    def annotate_ms2(self, mgf_file, output_mztab, feature_matrix_df_file, match_column_name, overwrite_name=False):
+        # clean up the mzTab to a dataframe:
+        matches = pyteomics.mztab.MzTab(output_mztab, encoding="UTF8", table_format="df").small_molecule_table
+        matches = matches.query("opt_ppm_error <= 10 and opt_ppm_error >= -10 and opt_match_score >= 60")
+        matches["opt_spec_native_id"] = matches["opt_spec_native_id"].str.replace(r"index=", "")
+
+        # load spectra parameters from mgf_file
+        exp = mgf.MGF(source=mgf_file, use_header=True, convert_arrays=2, read_charges=True, read_ions=False, dtype=None, encoding=None)
+        parameters=[]
+        for spec in exp:
+            parameters.append(spec['params'])
+        spectra = pd.DataFrame(parameters)
+        spectra["feature_id"] = spectra["feature_id"].str.replace(r"e_", "")
+
+        # annotate matches with feature id, based on scan number
+        matches.insert(0, "feature_id", [spectra[spectra["scans"].astype(int) == int(scan)+1]["feature_id"].tolist()[0] for scan in matches["opt_spec_native_id"]])
+
+        # annotate features with hits based on feature id
+        features = pd.read_csv(feature_matrix_df_file, sep="\t")
+        ms2_ids = []
+        for f_id in features.id:
+            hit = matches[matches["feature_id"] == str(f_id)]
+            if hit.shape[0] > 0:
+                ms2_ids.append(";".join(hit["description"]))
+            else:
+                ms2_ids.append("")
+        features.insert(2, match_column_name, ms2_ids)
+
+        if overwrite_name:
+            # replace generic or MS1 annotated metabolite name with actual MS2 annotation
+            features["metabolite"] = [y if y else x for x, y in zip(features["metabolite"], features[match_column_name])]
+        features.to_csv(feature_matrix_df_file, sep="\t", index=False)
