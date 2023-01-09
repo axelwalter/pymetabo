@@ -1,9 +1,9 @@
 import os
 import csv
+from pathlib import Path
 import pandas as pd
 from pyopenms import *
 from .helpers import Helper
-
 
 class FeatureFinderMetabo:
     def run(self, mzML, featureXML, params={}, q_threshold=0):
@@ -331,3 +331,76 @@ class PrecursorCorrector:
                     corrected_file = os.path.join(mzML_corrected_dir, mzml_file)
                     MzMLFile().store(corrected_file, exp)
 
+class Requantifier:
+    def run(self, consensusXML_file, feature_matrix_df_file, mzML_dir, feautureXML_dir, mz_window_ppm):
+        # get consensus df from consensusXML file
+        cm = ConsensusMap()
+        ConsensusXMLFile().load(consensusXML_file, cm)
+
+        # load feature_matrix
+        df_cm = pd.read_csv(feature_matrix_df_file, sep="\t").set_index("id")
+
+        # to map feature map file names to feature ids create a map
+        map = {key: Path(value.filename).stem for key, value in cm.getColumnHeaders().items()}
+
+        # create a database to store all information for requantification with consensus feature ids
+        db = {}
+
+        # get total number of files to check if re-quantification is required for a cf
+        n_files_total = len(cm.getColumnHeaders().items())
+
+        for cf in cm:
+            f_list = cf.getFeatureList()
+            if len(f_list) == n_files_total:
+                continue # skip cf that has all values
+            # calculate mass delta in Da for upper and lower limits
+            mz = cf.getMZ()
+            delta_Da = mz_window_ppm * mz/ 1000000
+            db[cf.getUniqueId()] = {
+                "mz_lower": mz - delta_Da, # lower mz from cf mz
+                "mz_upper": mz + delta_Da, # upper mz from cf mz
+                "file_to_id": {map[f.getMapIndex()]: f.getUniqueId() for f in f_list}, # map files to feature ids to extract rt values later
+                "rt_start": 0, # here, RT start values will be summed up in the next step and later diveded by number of files
+                "rt_end": 0 # same for RT end values
+            }
+
+        # now add rt start end and m/z start end positions to each cf in db -> get from feature map dataframes
+        for file in Path(feautureXML_dir).iterdir():
+            fm = FeatureMap()
+            FeatureXMLFile().load(str(file), fm)
+            df = fm.get_df()
+            for cf in db.keys():
+                map = db[cf]["file_to_id"]
+                if file.stem not in map.keys():
+                    continue # if the given file is not part of the consensus feature, skip this step
+                f_id = map[file.stem]
+                if file.stem in map.keys():
+                    db[cf]["rt_start"] += df.loc[str(map[file.stem]), "RTstart"]
+                    db[cf]["rt_end"] += df.loc[str(map[file.stem]), "RTend"]
+
+        # now that we have all the RT points summed up, devide by number of files in the consensus feature and remove "file_to_id" entry
+        for cf in db.keys():
+            n = len(db[cf]["file_to_id"])
+            db[cf]["rt_start"] /= n
+            db[cf]["rt_end"] /= n
+            del db[cf]["file_to_id"]
+
+        # with the complete database, iterate over the mzML files to do the actual requantification
+        for file in Path(mzML_dir).iterdir():
+            # get the mzML file name to link back to the consensus df
+            name = str(file.name)
+            exp = MSExperiment()
+            MzMLFile().load(str(file), exp)
+            df = exp.get_df()
+            for cf in db.keys():
+                rt_start = db[cf]["rt_start"]
+                rt_end = db[cf]["rt_end"]
+                df_filtered = df.query("RT > @rt_start and RT < @rt_end")
+                tic = 0
+                # for each matching spectrum extract the intensities between mz boundaries and add them to the TIC
+                for _, row in df_filtered.iterrows():
+                    tic += sum(row["intarray"][((row["mzarray"] > db[cf]["mz_lower"]) & (row["mzarray"] < db[cf]["mz_upper"]))])
+                # finally replace the entry in the consensus dataframe at index cf and column name with the re-quantified TIC values
+                df_cm.loc[cf, name] = int(tic)
+
+        df_cm.to_csv(feature_matrix_df_file, sep="\t")
